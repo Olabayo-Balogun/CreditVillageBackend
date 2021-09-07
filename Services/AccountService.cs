@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -166,6 +167,82 @@ namespace CreditVillageBackend
 
             return await GenerateUserToken(existUser);
         }
+
+
+        public async Task<ChangePasswordResponse> ChangePasswordAsync(string GetUserId, ChangePasswordRequest changePasswordRequest)
+        {
+            var user = await _userManager.FindByIdAsync(GetUserId);
+
+            if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            {
+                return new ChangePasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Your Email Address has not been confirm. Kindly Check Your Email Address"
+                };
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, changePasswordRequest.Old_Password, changePasswordRequest.Password);
+
+            if(!result.Succeeded)
+            {
+                return new ChangePasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Your Old Password is Incorrect"
+                };
+            }
+
+            return new ChangePasswordResponse()
+            {
+                Check = true,
+                Status = "success",
+                Message = "Password Changed"
+            };
+        }
+
+        public async Task<AppUser> GetUserAsync(string UserId)
+        {
+            return await _userManager.Users
+                                    .Include(s => s.Nationality)
+                                    .Include(x => x.State)
+                                    .SingleOrDefaultAsync(s => s.Id == UserId);
+        }
+
+
+        public async Task<UserUpdateResponse> UpdateUserAsync(string GetUserId, UserUpdateRequest updateRequest)
+        {
+            var user = await _userManager.FindByIdAsync(GetUserId);
+
+            if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            {
+                return new UserUpdateResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Username Doesn't Exist"
+                };
+            }
+
+            user.Full_Name = updateRequest.Full_Name;
+            user.Address = updateRequest.Address;
+            user.Bio = updateRequest.Bio;
+            user.NationalityId = updateRequest.NationalityId;
+            user.StateId = updateRequest.StateId;
+            user.PhoneNumber = updateRequest.Phone_Number;
+
+            await _userManager.UpdateAsync(user);
+
+            return new UserUpdateResponse()
+            {
+                Check = true,
+                Status = "success",
+                Message = "Updated Successfully"
+            };
+        }
+
 
         private async Task<UserLoginResponse> GenerateUserToken(AppUser user)
         {

@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreditVillageBackend.Controllers
@@ -41,7 +43,7 @@ namespace CreditVillageBackend.Controllers
         }
 
 
-        [HttpPost("v1/register/admin")]
+        [HttpPost("v1/admin/register")]
         public async Task<IActionResult> AdminRegister([FromBody] AdminRegisterRequest userRequest)
         {
             var authResponse = await _account.AdminRegisterAsync(userRequest);
@@ -70,6 +72,52 @@ namespace CreditVillageBackend.Controllers
             }
 
             return Ok(_mapper.Map<UserLoginMapping>(authUserResponse));
+        }
+
+
+        [HttpPost("v1/user/changepassword")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest changePasswordRequest)
+        {
+            var passwordResponse = await _account.ChangePasswordAsync(GetUserId(), changePasswordRequest);
+
+            if (!passwordResponse.Check)
+            {
+                return Ok(_mapper.Map<ChangePasswordMapping>(passwordResponse));
+            }
+
+            return Ok(_mapper.Map<ChangePasswordMapping>(passwordResponse));
+        }
+
+
+        [HttpGet("v1/user")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetUser()
+        {
+            var user = await _account.GetUserAsync(GetUserId());
+
+            return Ok(_mapper.Map<GetUserMapping>(user));
+        }
+
+
+        [HttpPut("v1/user")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> UpdateUser([FromBody] UserUpdateRequest updateRequest)
+        {
+            var userUpdate = await _account.UpdateUserAsync(GetUserId(), updateRequest);
+
+            if (!userUpdate.Check)
+            {
+                return Ok(_mapper.Map<UserUpdateMapping>(userUpdate));
+            }
+
+            return Ok(_mapper.Map<UserUpdateMapping>(userUpdate));
+        }
+
+
+        private string GetUserId()
+        {
+            return HttpContext.User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value;
         }       
     }
 }
