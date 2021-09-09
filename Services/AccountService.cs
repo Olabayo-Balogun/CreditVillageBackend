@@ -54,13 +54,13 @@ namespace CreditVillageBackend
             {
                 await _userManager.AddToRoleAsync(newUser, "User");
 
-                string code = await _userManager.GenerateEmailConfirmationTokenAsync(newUser);
+                string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email");
 
                 return new UserRegisterResponse()
                 {
                     Check = true,
                     Status = "success",
-                    Message = "Account Created Successfully. Please Check Your Email to Confirm Account",
+                    Message = $"Account Created Successfully. Please Check Your Email to Confirm Account { code }",
                     UserId = newUser.Id,
                     Email = newUser.Email,
                     Code = code
@@ -106,13 +106,13 @@ namespace CreditVillageBackend
             {
                 await _userManager.AddToRoleAsync(newUser, "Admin");
 
-                string code = await _userManager.GenerateEmailConfirmationTokenAsync(newUser);
+                string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email" );
 
                 return new AdminRegisterResponse()
                 {
                     Check = true,
                     Status = "success",
-                    Message = "Account Created Successfully. Please Check Your Email to Confirm Account",
+                    Message = $"Account Created Successfully. Please Check Your Email to Confirm Account { code }",
                     UserId = newUser.Id,
                     Email = newUser.Email,
                     Code = code
@@ -124,6 +124,47 @@ namespace CreditVillageBackend
                 Check = false,
                 Message = result.Errors.LastOrDefault().Description
             };
+        }
+
+
+        public async Task<UserVerifyResponse> UserVerifyAsync(UserVerifyRequest userRequest)
+        {
+            var existUser = await _userManager.FindByEmailAsync(userRequest.Email);
+
+            if (existUser == null)
+            {
+                return new UserVerifyResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "This Email Address doesn't exist"
+                };
+            }
+
+            bool result = await _userManager.VerifyTwoFactorTokenAsync(existUser, "Email", userRequest.Token);
+
+            if (!result)
+            {
+                return new UserVerifyResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Invalid token"
+                };
+            }
+            else
+            {
+                existUser.EmailConfirmed = true;
+
+                await _userManager.UpdateAsync(existUser);
+
+                return new UserVerifyResponse()
+                {
+                    Check = true,
+                    Status = "success",
+                    Message = "Email Verify Successfully"
+                };
+            }
         }
 
 

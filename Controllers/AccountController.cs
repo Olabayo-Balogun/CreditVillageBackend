@@ -26,6 +26,7 @@ namespace CreditVillageBackend.Controllers
 
 
         [HttpPost("v1/register")]
+        [AllowAnonymous]
         public async Task<IActionResult> UserRegister([FromBody] UserRegisterRequest userRequest)
         {
             var authResponse = await _account.UserRegisterAsync(userRequest);
@@ -34,16 +35,15 @@ namespace CreditVillageBackend.Controllers
             {
                 return Ok(_mapper.Map<UserRegisterMapping>(authResponse));
             }
-
-            var callbackUrl = Url.Action("ConfirmEmail", "Manage", new { UserId = authResponse.UserId, Code = authResponse.Code }, HttpContext.Request.Scheme);
              
-            await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", "Please Confirm Your E-Mail by clicking this link: <a href=\"" + callbackUrl + "\">Click here </a>");
+            await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
 
             return Ok( _mapper.Map<UserRegisterMapping>(authResponse));
         }
 
 
         [HttpPost("v1/admin/register")]
+        [AllowAnonymous]
         public async Task<IActionResult> AdminRegister([FromBody] AdminRegisterRequest userRequest)
         {
             var authResponse = await _account.AdminRegisterAsync(userRequest);
@@ -53,15 +53,29 @@ namespace CreditVillageBackend.Controllers
                 return Ok(_mapper.Map<AdminRegisterMapping>(authResponse));
             }
 
-            var callbackUrl = Url.Action("ConfirmEmail", "Manage", new { UserId = authResponse.UserId, Code = authResponse.Code }, HttpContext.Request.Scheme);
-             
-            await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", "Please Confirm Your E-Mail by clicking this link: <a href=\"" + callbackUrl + "\">Click here </a>");
+            await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
 
             return Ok( _mapper.Map<AdminRegisterMapping>(authResponse));
         }
 
+        
+        [HttpPut("v1/user/verify")]
+        [AllowAnonymous]
+        public async Task<IActionResult> UserVerify([FromBody] UserVerifyRequest userRequest)
+        {
+            var verifyResponse = await _account.UserVerifyAsync(userRequest);
+
+            if (!verifyResponse.Check)
+            {
+                return Ok(_mapper.Map<UserVerifyMapping>(verifyResponse));
+            }
+
+            return Ok( _mapper.Map<UserVerifyMapping>(verifyResponse));
+        }
+
 
         [HttpPost("v1/login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] UserLoginRequest userRequest)
         {
             var authUserResponse = await _account.LoginAsync(userRequest);
@@ -75,7 +89,7 @@ namespace CreditVillageBackend.Controllers
         }
 
 
-        [HttpPost("v1/user/changepassword")]
+        [HttpPut("v1/user/changepassword")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest changePasswordRequest)
         {

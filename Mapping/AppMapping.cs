@@ -10,6 +10,8 @@ namespace CreditVillageBackend
 
             CreateMap<AdminRegisterResponse, AdminRegisterMapping>();
 
+            CreateMap<UserVerifyResponse, UserVerifyMapping>();
+
             CreateMap<ChangePasswordResponse, ChangePasswordMapping>();
 
             CreateMap<UserUpdateResponse, UserUpdateMapping>();
