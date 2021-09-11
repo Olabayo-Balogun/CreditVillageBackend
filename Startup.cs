@@ -14,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using CreditVillageBackend.Data;
 
 namespace CreditVillageBackend
 {
@@ -37,6 +39,9 @@ namespace CreditVillageBackend
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "CreditVillageBackend", Version = "v1" });
             });
+
+            services.AddDbContext<CreditVillageBackendContext>(options =>
+                    options.UseSqlServer(Configuration.GetConnectionString("CreditVillageBackendContext")));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
