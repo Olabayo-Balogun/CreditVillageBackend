@@ -28,6 +28,10 @@ namespace CreditVillageBackend
         public string Confirm_Email { get; set; }
 
         [Required]
+        [Display(Name = "Phone Number")]
+        public string Phone_Number { get; set; }
+
+        [Required]
         [Display(Name = "Password")]
         [StringLength(50, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 5)]
         [DataType(DataType.Password)]

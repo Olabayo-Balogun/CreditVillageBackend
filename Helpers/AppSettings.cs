@@ -13,5 +13,9 @@ namespace CreditVillageBackend
         public string SendGridKey { get; set; }
 
         public string SendGridUser { get; set; }
+
+        public string VONAGE_API_KEY { get; set; }
+
+        public string VONAGE_API_SECRET { get; set; }
     }
 }

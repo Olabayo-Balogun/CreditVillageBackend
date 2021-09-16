@@ -8,9 +8,13 @@ namespace CreditVillageBackend
 
         Task<AdminRegisterResponse> AdminRegisterAsync(AdminRegisterRequest userRequest);
 
+        Task<UserResendCodeResponse> UserResendCodeAsync(UserResendCodeRequest userRequest);
+
         Task<UserVerifyResponse> UserVerifyAsync(UserVerifyRequest userRequest);
 
         Task<UserLoginResponse> LoginAsync(UserLoginRequest userRequest);
+
+        Task<UserForgetPasswordResponse> UserForgetPasswordAsync(UserForgetPasswordRequest userRequest);
 
         Task<ChangePasswordResponse> ChangePasswordAsync(string GetUserId, ChangePasswordRequest changePasswordRequest);
 

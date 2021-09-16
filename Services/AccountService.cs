@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Vonage;
+using Vonage.Request;
 
 namespace CreditVillageBackend
 {
@@ -45,7 +47,8 @@ namespace CreditVillageBackend
                 UserName = userRequest.Email,
                 Joined_Date = DateTime.Now,
                 StateId = userRequest.State,
-                NationalityId = userRequest.Nationality
+                NationalityId = userRequest.Nationality,
+                PhoneNumber = userRequest.Phone_Number
             };
 
             var result = await _userManager.CreateAsync(newUser, userRequest.Password);
@@ -56,11 +59,25 @@ namespace CreditVillageBackend
 
                 string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email");
 
+                var credentials = Credentials.FromApiKeyAndSecret(
+                    _appSettings.VONAGE_API_KEY,
+                    _appSettings.VONAGE_API_SECRET
+                );
+
+                var VonageClient = new VonageClient(credentials);
+
+                var response = VonageClient.SmsClient.SendAnSms(new Vonage.Messaging.SendSmsRequest()
+                {
+                    To = newUser.PhoneNumber,
+                    From = "CREDIT VILLAGE",
+                    Text = $"Confirm Your account, Your OTP is { code }"
+                });
+
                 return new UserRegisterResponse()
                 {
                     Check = true,
                     Status = "success",
-                    Message = $"Account Created Successfully. Please Check Your Email to Confirm Account { code }",
+                    Message = $"Account Created Successfully. Please Check Your Phone For OTP",
                     UserId = newUser.Id,
                     Email = newUser.Email,
                     Code = code
@@ -97,7 +114,8 @@ namespace CreditVillageBackend
                 UserName = userRequest.Email,
                 Joined_Date = DateTime.Now,
                 StateId = userRequest.State,
-                NationalityId = userRequest.Nationality
+                NationalityId = userRequest.Nationality,
+                PhoneNumber = userRequest.Phone_Number
             };
 
             var result = await _userManager.CreateAsync(newUser, userRequest.Password);
@@ -108,11 +126,25 @@ namespace CreditVillageBackend
 
                 string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email" );
 
+                var credentials = Credentials.FromApiKeyAndSecret(
+                    _appSettings.VONAGE_API_KEY,
+                    _appSettings.VONAGE_API_SECRET
+                );
+
+                var VonageClient = new VonageClient(credentials);
+
+                var response = VonageClient.SmsClient.SendAnSms(new Vonage.Messaging.SendSmsRequest()
+                {
+                    To = newUser.PhoneNumber,
+                    From = "CREDIT VILLAGE",
+                    Text = $"Confirm Your account, Your OTP is { code }"
+                });
+
                 return new AdminRegisterResponse()
                 {
                     Check = true,
                     Status = "success",
-                    Message = $"Account Created Successfully. Please Check Your Email to Confirm Account { code }",
+                    Message = $"Account Created Successfully. Please Check Your Phone For OTP",
                     UserId = newUser.Id,
                     Email = newUser.Email,
                     Code = code
@@ -123,6 +155,45 @@ namespace CreditVillageBackend
             {
                 Check = false,
                 Message = result.Errors.LastOrDefault().Description
+            };
+        }
+
+
+        public async Task<UserResendCodeResponse> UserResendCodeAsync(UserResendCodeRequest userRequest)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(userRequest.Email);
+
+            if (existingUser == null)
+            {
+                return new UserResendCodeResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Please Check Your Phone For OTP"
+                };
+            }
+
+            string code = await _userManager.GenerateTwoFactorTokenAsync(existingUser, "Email" );
+
+            var credentials = Credentials.FromApiKeyAndSecret(
+                _appSettings.VONAGE_API_KEY,
+                _appSettings.VONAGE_API_SECRET
+            );
+
+            var VonageClient = new VonageClient(credentials);
+
+            var response = VonageClient.SmsClient.SendAnSms(new Vonage.Messaging.SendSmsRequest()
+            {
+                To = existingUser.PhoneNumber,
+                From = "CREDIT VILLAGE",
+                Text = $"Your OTP is { code }"
+            });
+
+            return new UserResendCodeResponse()
+            {
+                Check = true,
+                Status = "success",
+                Message = "Please Check Your Phone For OTP"
             };
         }
 
@@ -210,6 +281,34 @@ namespace CreditVillageBackend
         }
 
 
+        public async Task<UserForgetPasswordResponse> UserForgetPasswordAsync(UserForgetPasswordRequest userRequest)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(userRequest.Email);
+
+            if (existingUser == null)
+            {
+                return new UserForgetPasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Reset Password link has been sent to your mail"
+                };
+            }
+
+            string code = await _userManager.GeneratePasswordResetTokenAsync(existingUser);
+
+            return new UserForgetPasswordResponse()
+            {
+                Check = true,
+                Status = "success",
+                Message = $"Reset Password link has been sent to your mail",
+                UserId = existingUser.Id,
+                Email = existingUser.Email,
+                Code = code
+            };
+        }
+
+
         public async Task<ChangePasswordResponse> ChangePasswordAsync(string GetUserId, ChangePasswordRequest changePasswordRequest)
         {
             var user = await _userManager.FindByIdAsync(GetUserId);
@@ -243,6 +342,7 @@ namespace CreditVillageBackend
                 Message = "Password Changed"
             };
         }
+
 
         public async Task<AppUser> GetUserAsync(string UserId)
         {

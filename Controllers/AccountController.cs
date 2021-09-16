@@ -36,7 +36,7 @@ namespace CreditVillageBackend.Controllers
                 return Ok(_mapper.Map<UserRegisterMapping>(authResponse));
             }
              
-            await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
+            //await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
 
             return Ok( _mapper.Map<UserRegisterMapping>(authResponse));
         }
@@ -53,24 +53,9 @@ namespace CreditVillageBackend.Controllers
                 return Ok(_mapper.Map<AdminRegisterMapping>(authResponse));
             }
 
-            await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
+            //await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
 
             return Ok( _mapper.Map<AdminRegisterMapping>(authResponse));
-        }
-
-        
-        [HttpPut("v1/user/verify")]
-        [AllowAnonymous]
-        public async Task<IActionResult> UserVerify([FromBody] UserVerifyRequest userRequest)
-        {
-            var verifyResponse = await _account.UserVerifyAsync(userRequest);
-
-            if (!verifyResponse.Check)
-            {
-                return Ok(_mapper.Map<UserVerifyMapping>(verifyResponse));
-            }
-
-            return Ok( _mapper.Map<UserVerifyMapping>(verifyResponse));
         }
 
 
@@ -89,18 +74,22 @@ namespace CreditVillageBackend.Controllers
         }
 
 
-        [HttpPut("v1/user/changepassword")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest changePasswordRequest)
+        [HttpPost("v1/forgetpassword")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgetPassword([FromBody] UserForgetPasswordRequest userRequest)
         {
-            var passwordResponse = await _account.ChangePasswordAsync(GetUserId(), changePasswordRequest);
+            var userResponse = await _account.UserForgetPasswordAsync(userRequest);
 
-            if (!passwordResponse.Check)
+            if (!userResponse.Check)
             {
-                return Ok(_mapper.Map<ChangePasswordMapping>(passwordResponse));
+                return Ok(_mapper.Map<UserForgetPasswordMapping>(userResponse));
             }
 
-            return Ok(_mapper.Map<ChangePasswordMapping>(passwordResponse));
+            var callbackUrl = Url.Action("ForgetPassword", "Manage", new { UserId = userResponse.UserId, Code = userResponse.Code }, HttpContext.Request.Scheme);
+             
+            await _emailSender.SendEmailAsync(userResponse.Email, "CREDIT VILLAGE - Reset your password", "Please Reset your password by clicking this link: <a href=\"" + callbackUrl + "\">Click here </a>");
+
+            return Ok( _mapper.Map<UserForgetPasswordMapping>(userResponse));
         }
 
 
@@ -126,6 +115,51 @@ namespace CreditVillageBackend.Controllers
             }
 
             return Ok(_mapper.Map<UserUpdateMapping>(userUpdate));
+        }
+
+
+        [HttpPut("v1/user/resendCode")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResendCode([FromBody] UserResendCodeRequest userRequest)
+        {
+            var authResponse = await _account.UserResendCodeAsync(userRequest);
+
+            if (!authResponse.Check)
+            {
+                return Ok(_mapper.Map<UserResendCodeMapping>(authResponse));
+            }
+
+            return Ok( _mapper.Map<UserResendCodeMapping>(authResponse));
+        }
+
+        
+        [HttpPut("v1/user/verify")]
+        [AllowAnonymous]
+        public async Task<IActionResult> UserVerify([FromBody] UserVerifyRequest userRequest)
+        {
+            var verifyResponse = await _account.UserVerifyAsync(userRequest);
+
+            if (!verifyResponse.Check)
+            {
+                return Ok(_mapper.Map<UserVerifyMapping>(verifyResponse));
+            }
+
+            return Ok( _mapper.Map<UserVerifyMapping>(verifyResponse));
+        }
+
+
+        [HttpPut("v1/user/changepassword")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest changePasswordRequest)
+        {
+            var passwordResponse = await _account.ChangePasswordAsync(GetUserId(), changePasswordRequest);
+
+            if (!passwordResponse.Check)
+            {
+                return Ok(_mapper.Map<ChangePasswordMapping>(passwordResponse));
+            }
+
+            return Ok(_mapper.Map<ChangePasswordMapping>(passwordResponse));
         }
 
 

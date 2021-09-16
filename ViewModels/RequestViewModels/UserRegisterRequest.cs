@@ -8,18 +8,22 @@ namespace CreditVillageBackend
         [Display(Name = "Full Name")]
         public string Full_Name { get; set; }
 
+
         [Required]
         [Display(Name = "Nationality")]
         public int Nationality { get; set; }
+
 
         [Required]
         [Display(Name = "State")]
         public int State { get; set; }
 
+
         [Required]
         [Display(Name = "Email Address")]
         [DataType(DataType.EmailAddress)]
         public string Email { get; set; }
+        
 
         [Required]
         [Display(Name = "Email Confirm Address")]
@@ -27,11 +31,24 @@ namespace CreditVillageBackend
         [Compare("Email", ErrorMessage = "The Email do not match.")]
         public string Confirm_Email { get; set; }
 
+
+        [Required]
+        [Display(Name = "Phone Number")]
+        public string Phone_Number { get; set; }
+
+
+        [Required]
+        [Compare("Phone_Number", ErrorMessage = "The phone number do not match.")]
+        [Display(Name = "Confirm Phone Number")]
+        public string Confirm_Phone_Number { get; set; }
+
+
         [Required]
         [Display(Name = "Password")]
         [StringLength(50, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 5)]
         [DataType(DataType.Password)]
         public string Password { get; set; }
+
 
         [Required]
         [DataType(DataType.Password)]
