@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using AutoMapper;
+using CreditVillageBackend.Helpers;
 using CreditVillageBackend.ViewModels.MappingViewModels;
 using CreditVillageBackend.ViewModels.RequestViewModels;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,15 +14,19 @@ namespace CreditVillageBackend.Controllers
     {      
         private readonly IAccount _account;
 
+        private readonly IMailService _mailService;
+
         private readonly IEmailSender _emailSender;
 
         private readonly IMapper _mapper;
 
         public AccountController(IAccount account,
             IEmailSender emailSender,
+            IMailService mailService,
             IMapper mapper)
         {
             _account = account;
+            _mailService = mailService;
             this._emailSender = emailSender;
             this._mapper = mapper;
         }
@@ -37,9 +42,7 @@ namespace CreditVillageBackend.Controllers
             {
                 return Ok(_mapper.Map<RegisterMapping>(authResponse));
             }
-             
-            //await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
-
+         
             return Ok( _mapper.Map<RegisterMapping>(authResponse));
         }
 
@@ -54,8 +57,6 @@ namespace CreditVillageBackend.Controllers
             {
                 return Ok(_mapper.Map<RegisterMapping>(authResponse));
             }
-
-            //await _emailSender.SendEmailAsync(authResponse.Email, "CREDIT VILLAGE - Confirm Your Email", $"Your OTP is { authResponse.Code }");
 
             return Ok( _mapper.Map<RegisterMapping>(authResponse));
         }
@@ -87,11 +88,31 @@ namespace CreditVillageBackend.Controllers
                 return Ok(_mapper.Map<ForgetPasswordMapping>(userResponse));
             }
 
-            var callbackUrl = Url.Action("ForgetPassword", "Manage", new { UserId = userResponse.UserId, Code = userResponse.Code }, HttpContext.Request.Scheme);
-             
-            await _emailSender.SendEmailAsync(userResponse.Email, "CREDIT VILLAGE - Reset your password", "Please Reset your password by clicking this link: <a href=\"" + callbackUrl + "\">Click here </a>");
+            //Front end guy will give me the URL that I needed
+            var callbackUrl = $"/Account/ResetPassword?UserId={userResponse.Email}&Code={userResponse.Code}";
+           // var callbackUrl = Url.Action("ForgetPassword", "Manage", new { Email = userResponse.Email, Code = userResponse.Code }, HttpContext.Request.Scheme);
+          
+            await _mailService.SendEmailAsync(
+                    userResponse.Email,
+                    "CREDIT VILLAGE - Reset Password",
+                    $"Please Reset your password by clicking this link: <a href=\"{callbackUrl}\">Click here </a>"
+                    );
 
             return Ok( _mapper.Map<ForgetPasswordMapping>(userResponse));
+        }
+
+        [HttpPost("v1/resetpassword")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest resetPasswordRequest)
+        {
+            var passwordResponse = await _account.ResetPasswordAsync(resetPasswordRequest);
+
+            if (!passwordResponse.Check)
+            {
+                return Ok(_mapper.Map<ResetPasswordMapping>(passwordResponse));
+            }
+
+            return Ok(_mapper.Map<ResetPasswordMapping>(passwordResponse));
         }
 
 

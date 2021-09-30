@@ -30,7 +30,7 @@ namespace CreditVillageBackend
 
             CreateMap<EditResponse, EditMapping>();
 
-
+            CreateMap<ResetPasswordResponse, ResetPasswordMapping>();
         }
     }
 }
