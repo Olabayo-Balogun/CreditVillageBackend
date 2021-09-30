@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CreditVillageBackend
 {
-    public class UserForgetPasswordRequest
+    public class ResendCodeRequest
     {
         [Required]
         [Display(Name = "Email Address")]

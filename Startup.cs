@@ -1,3 +1,6 @@
+using CreditVillageBackend.Helpers;
+using CreditVillageBackend.Interfaces;
+using CreditVillageBackend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -63,6 +66,11 @@ namespace CreditVillageBackend
             services.AddScoped<IAccount, AccountService>();
 
             services.AddTransient<IEmailSender, SendGridEmailSender>();
+
+            //registering send Grid Ekene
+            services.AddTransient<IMailService, SendGridMailService>();
+
+            services.AddScoped<IUploadImage, UploadImageService>();
 
             services.AddAutoMapper(typeof(Startup));
 

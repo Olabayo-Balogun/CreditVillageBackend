@@ -1,6 +1,6 @@
 namespace CreditVillageBackend
 {
-    public class UserVerifyResponse
+    public class UpdateResponse
     {
         public bool Check { get; set; }
 

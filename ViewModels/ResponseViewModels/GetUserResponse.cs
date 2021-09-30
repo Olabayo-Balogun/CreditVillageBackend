@@ -1,9 +1,11 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace CreditVillageBackend
+namespace CreditVillageBackend.ViewModels.ResponseViewModels
 {
-   
-    public class GetUserMapping 
+    public class GetUserResponse
     {
         public string FirstName { get; set; }
 
@@ -19,13 +21,7 @@ namespace CreditVillageBackend
 
         public string FileFullName { get; set; }
 
-        public string FileBase64 { get; set; }   
-    }
+        public string FileBase64 { get; set; }
 
-    public class DetailsConfirm
-    {
-        public string FullName { get; set; }
-
-        public string File { get; set; }
     }
 }

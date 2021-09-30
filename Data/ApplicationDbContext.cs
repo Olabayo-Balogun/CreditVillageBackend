@@ -1,3 +1,4 @@
+using CreditVillageBackend.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -23,8 +24,10 @@ namespace CreditVillageBackend
             builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
         }
 
-        public DbSet<State> States { get; set; }
+        //public DbSet<State> States { get; set; }
 
-        public DbSet<Nationality> Nationalities { get; set; }
+        //public DbSet<Nationality> Nationalities { get; set; }
+
+        public DbSet<UploadModel> ProfileImage { get; set; }
     }
 }

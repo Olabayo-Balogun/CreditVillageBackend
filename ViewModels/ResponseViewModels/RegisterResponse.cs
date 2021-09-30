@@ -1,6 +1,6 @@
 namespace CreditVillageBackend
-{  
-    public class UserForgetPasswordResponse
+{
+    public class RegisterResponse
     {
         public bool Check { get; set; }
 
