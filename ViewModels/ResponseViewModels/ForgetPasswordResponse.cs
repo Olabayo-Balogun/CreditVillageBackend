@@ -1,8 +1,6 @@
-using System;
-
 namespace CreditVillageBackend
-{
-    public class UserLoginResponse
+{  
+    public class ForgetPasswordResponse
     {
         public bool Check { get; set; }
 
@@ -10,8 +8,10 @@ namespace CreditVillageBackend
 
         public string Message { get; set; }
 
-        public string Token { get; set; }
+        public string UserId { get; set; }
 
-        public DateTime Expiration { get; set; }
+        public string Email { get; set; }
+
+        public string Code { get; set; }
     }
 }

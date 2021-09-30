@@ -1,25 +1,32 @@
+using CreditVillageBackend.ViewModels.RequestViewModels;
+using CreditVillageBackend.ViewModels.ResponseViewModels;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CreditVillageBackend
 {
     public interface IAccount
     {
-        Task<UserRegisterResponse> UserRegisterAsync(UserRegisterRequest userRequest);
+        Task<RegisterResponse> UserRegisterAsync(RegisterRequest userRequest);
 
-        Task<AdminRegisterResponse> AdminRegisterAsync(AdminRegisterRequest userRequest);
+        Task<RegisterResponse> AdminRegisterAsync(RegisterRequest userRequest);
 
-        Task<UserResendCodeResponse> UserResendCodeAsync(UserResendCodeRequest userRequest);
+        Task<ResendCodeResponse> UserResendCodeAsync(ResendCodeRequest userRequest);
 
-        Task<UserVerifyResponse> UserVerifyAsync(UserVerifyRequest userRequest);
+        Task<VerifyResponse> UserVerifyAsync(VerifyRequest userRequest);
 
-        Task<UserLoginResponse> LoginAsync(UserLoginRequest userRequest);
+        Task<LoginResponse> LoginAsync(LoginRequest userRequest);
 
-        Task<UserForgetPasswordResponse> UserForgetPasswordAsync(UserForgetPasswordRequest userRequest);
+        Task<ForgetPasswordResponse> UserForgetPasswordAsync(ForgetPasswordRequest userRequest);
 
         Task<ChangePasswordResponse> ChangePasswordAsync(string GetUserId, ChangePasswordRequest changePasswordRequest);
 
-        Task<AppUser> GetUserAsync(string UserId);
+        Task<GetUserResponse> GetUserAsync(string UserId);
 
-        Task<UserUpdateResponse> UpdateUserAsync(string GetUserId, UserUpdateRequest updateRequest);
+        Task<UpdateResponse> UpdateUserAsync(string GetUserId, UpdateRequest updateRequest);
+
+        Task<EditResponse> EditUserDetailsAsync(string GetUserId, EditRequest editRequest);
+
     }
 }

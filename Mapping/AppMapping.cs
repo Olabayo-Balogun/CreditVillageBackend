@@ -1,4 +1,6 @@
 using AutoMapper;
+using CreditVillageBackend.ViewModels.MappingViewModels;
+using CreditVillageBackend.ViewModels.ResponseViewModels;
 
 namespace CreditVillageBackend
 {
@@ -6,33 +8,29 @@ namespace CreditVillageBackend
     {
         public AppMapping()
         {
-            CreateMap<UserRegisterResponse, UserRegisterMapping>();
+            CreateMap<RegisterResponse, RegisterMapping>();
 
-            CreateMap<AdminRegisterResponse, AdminRegisterMapping>();
+            CreateMap<ResendCodeResponse, ResendCodeMapping>();
 
-            CreateMap<UserResendCodeResponse, UserResendCodeMapping>();
-
-            CreateMap<UserLoginResponse, UserLoginMapping>()
+            CreateMap<LoginResponse, LoginMapping>()
                 .ForMember(dest => dest.Data, opt =>
-                    opt.MapFrom(x => new UserLoginConfirm { Token = x.Token,
+                    opt.MapFrom(x => new LoginConfirm { Token = x.Token,
                                                             Expiration = x.Expiration
                                                         }));
 
-            CreateMap<UserForgetPasswordResponse, UserForgetPasswordMapping>();                            
+            CreateMap<ForgetPasswordResponse, ForgetPasswordMapping>();
 
-            CreateMap<AppUser, GetUserMapping>()
-                .ForMember(dest => dest.Nationality, opt =>
-                      opt.MapFrom(x => x.Nationality.Name))
-                .ForMember(dest => dest.State, opt =>
-                      opt.MapFrom(x => x.State.Name));   
-
-            CreateMap<UserVerifyResponse, UserVerifyMapping>();
+            CreateMap<GetUserResponse, GetUserMapping>();
+              
+            CreateMap<VerifyResponse, VerifyMapping>();
 
             CreateMap<ChangePasswordResponse, ChangePasswordMapping>();
 
-            CreateMap<UserUpdateResponse, UserUpdateMapping>();
+            CreateMap<UpdateResponse, UpdateMapping>();
 
-                                     
+            CreateMap<EditResponse, EditMapping>();
+
+
         }
     }
 }

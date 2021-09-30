@@ -4,6 +4,10 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using CreditVillageBackend.Helpers;
+using CreditVillageBackend.Interfaces;
+using CreditVillageBackend.ViewModels.RequestViewModels;
+using CreditVillageBackend.ViewModels.ResponseViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -19,20 +23,32 @@ namespace CreditVillageBackend
 
         private readonly AppSettings _appSettings;
 
+        private readonly RoleManager<IdentityRole> _roleManager;
+
+        private readonly IMailService _mailService;
+
+        private readonly IUploadImage _uploadImage;
+
         public AccountService(UserManager<AppUser> userManager,
-                                IOptions<AppSettings> appSettings)
+                                IOptions<AppSettings> appSettings,
+                                RoleManager<IdentityRole> roleManager,
+                                IMailService mailService,
+                                IUploadImage uploadImage)
         {
             _userManager = userManager;
             _appSettings = appSettings.Value;
+            _roleManager = roleManager;
+            _mailService = mailService;
+            _uploadImage = uploadImage;
         }
 
-        public async Task<UserRegisterResponse> UserRegisterAsync(UserRegisterRequest userRequest)
+        public async Task<RegisterResponse> UserRegisterAsync(RegisterRequest userRequest)
         {
             var existingEmail = await _userManager.FindByEmailAsync(userRequest.Email);
 
             if (existingEmail != null)
             {
-                return new UserRegisterResponse()
+                return new RegisterResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -42,49 +58,39 @@ namespace CreditVillageBackend
 
             var newUser = new AppUser
             {
-                Full_Name = userRequest.Full_Name,
                 Email = userRequest.Email,
                 UserName = userRequest.Email,
-                Joined_Date = DateTime.Now,
-                StateId = userRequest.State,
-                NationalityId = userRequest.Nationality,
-                PhoneNumber = userRequest.Phone_Number
+                CreatedOn = DateTime.Now,
             };
 
             var result = await _userManager.CreateAsync(newUser, userRequest.Password);
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(newUser, "User");
+                if (!await _roleManager.RoleExistsAsync(UserRoles.User))
+                    await _roleManager.CreateAsync(new IdentityRole(UserRoles.User));
+
+                if (await _roleManager.RoleExistsAsync(UserRoles.User))
+                {
+                    await _userManager.AddToRoleAsync(newUser, UserRoles.User);
+                }
 
                 string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email");
 
-                var credentials = Credentials.FromApiKeyAndSecret(
-                    _appSettings.VONAGE_API_KEY,
-                    _appSettings.VONAGE_API_SECRET
-                );
+                await SendCodeToUser(newUser.Email, code);
 
-                var VonageClient = new VonageClient(credentials);
-
-                var response = VonageClient.SmsClient.SendAnSms(new Vonage.Messaging.SendSmsRequest()
-                {
-                    To = newUser.PhoneNumber,
-                    From = "CREDIT VILLAGE",
-                    Text = $"Confirm Your account, Your OTP is { code }"
-                });
-
-                return new UserRegisterResponse()
+                return new RegisterResponse()
                 {
                     Check = true,
                     Status = "success",
-                    Message = $"Account Created Successfully. Please Check Your Phone For OTP",
+                    Message = $"Account Created Successfully. Please Check Your EMail For OTP",
                     UserId = newUser.Id,
                     Email = newUser.Email,
                     Code = code
                 };
             }
 
-            return new UserRegisterResponse()
+            return new RegisterResponse()
             {
                 Check = false,
                 Status = "error",
@@ -93,13 +99,13 @@ namespace CreditVillageBackend
         }
 
         
-        public async Task<AdminRegisterResponse> AdminRegisterAsync(AdminRegisterRequest userRequest)
+        public async Task<RegisterResponse> AdminRegisterAsync(RegisterRequest userRequest)
         {
             var existingEmail = await _userManager.FindByEmailAsync(userRequest.Email);
 
             if (existingEmail != null)
             {
-                return new AdminRegisterResponse()
+                return new RegisterResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -109,38 +115,28 @@ namespace CreditVillageBackend
 
             var newUser = new AppUser
             {
-                Full_Name = userRequest.Full_Name,
                 Email = userRequest.Email,
                 UserName = userRequest.Email,
-                Joined_Date = DateTime.Now,
-                StateId = userRequest.State,
-                NationalityId = userRequest.Nationality,
-                PhoneNumber = userRequest.Phone_Number
+                CreatedOn = DateTime.Now,
             };
 
             var result = await _userManager.CreateAsync(newUser, userRequest.Password);
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(newUser, "Admin");
+                if (!await _roleManager.RoleExistsAsync(UserRoles.Admin))
+                    await _roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
 
-                string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email" );
-
-                var credentials = Credentials.FromApiKeyAndSecret(
-                    _appSettings.VONAGE_API_KEY,
-                    _appSettings.VONAGE_API_SECRET
-                );
-
-                var VonageClient = new VonageClient(credentials);
-
-                var response = VonageClient.SmsClient.SendAnSms(new Vonage.Messaging.SendSmsRequest()
+                if (await _roleManager.RoleExistsAsync(UserRoles.Admin))
                 {
-                    To = newUser.PhoneNumber,
-                    From = "CREDIT VILLAGE",
-                    Text = $"Confirm Your account, Your OTP is { code }"
-                });
+                    await _userManager.AddToRoleAsync(newUser, UserRoles.Admin);
+                }
 
-                return new AdminRegisterResponse()
+                string code = await _userManager.GenerateTwoFactorTokenAsync(newUser, "Email");
+
+                await SendCodeToUser(newUser.Email, code);
+
+                return new RegisterResponse()
                 {
                     Check = true,
                     Status = "success",
@@ -151,7 +147,7 @@ namespace CreditVillageBackend
                 };
             }
 
-            return new AdminRegisterResponse()
+            return new RegisterResponse()
             {
                 Check = false,
                 Message = result.Errors.LastOrDefault().Description
@@ -159,13 +155,13 @@ namespace CreditVillageBackend
         }
 
 
-        public async Task<UserResendCodeResponse> UserResendCodeAsync(UserResendCodeRequest userRequest)
+        public async Task<ResendCodeResponse> UserResendCodeAsync(ResendCodeRequest userRequest)
         {
             var existingUser = await _userManager.FindByEmailAsync(userRequest.Email);
 
             if (existingUser == null)
             {
-                return new UserResendCodeResponse()
+                return new ResendCodeResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -175,21 +171,9 @@ namespace CreditVillageBackend
 
             string code = await _userManager.GenerateTwoFactorTokenAsync(existingUser, "Email" );
 
-            var credentials = Credentials.FromApiKeyAndSecret(
-                _appSettings.VONAGE_API_KEY,
-                _appSettings.VONAGE_API_SECRET
-            );
+            await SendCodeToUser(existingUser.Email, code);
 
-            var VonageClient = new VonageClient(credentials);
-
-            var response = VonageClient.SmsClient.SendAnSms(new Vonage.Messaging.SendSmsRequest()
-            {
-                To = existingUser.PhoneNumber,
-                From = "CREDIT VILLAGE",
-                Text = $"Your OTP is { code }"
-            });
-
-            return new UserResendCodeResponse()
+            return new ResendCodeResponse()
             {
                 Check = true,
                 Status = "success",
@@ -198,13 +182,13 @@ namespace CreditVillageBackend
         }
 
 
-        public async Task<UserVerifyResponse> UserVerifyAsync(UserVerifyRequest userRequest)
+        public async Task<VerifyResponse> UserVerifyAsync(VerifyRequest userRequest)
         {
             var existUser = await _userManager.FindByEmailAsync(userRequest.Email);
 
             if (existUser == null)
             {
-                return new UserVerifyResponse()
+                return new VerifyResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -216,7 +200,7 @@ namespace CreditVillageBackend
 
             if (!result)
             {
-                return new UserVerifyResponse()
+                return new VerifyResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -229,7 +213,7 @@ namespace CreditVillageBackend
 
                 await _userManager.UpdateAsync(existUser);
 
-                return new UserVerifyResponse()
+                return new VerifyResponse()
                 {
                     Check = true,
                     Status = "success",
@@ -239,13 +223,13 @@ namespace CreditVillageBackend
         }
 
 
-        public async Task<UserLoginResponse> LoginAsync(UserLoginRequest userRequest)
+        public async Task<LoginResponse> LoginAsync(LoginRequest userRequest)
         {
             var existUser = await _userManager.FindByNameAsync(userRequest.Email);
 
             if (existUser == null)
             {
-                return new UserLoginResponse()
+                return new LoginResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -257,11 +241,11 @@ namespace CreditVillageBackend
 
             if (!checkPassword)
             {
-                return new UserLoginResponse()
+                return new LoginResponse()
                 {
                     Check = false,
                     Status = "success",
-                    Message = "InCorrect Password"
+                    Message = "Wrong Password or Email"
                 };
             }
 
@@ -269,7 +253,7 @@ namespace CreditVillageBackend
 
             if (!emailConfirmed)
             {
-                return new UserLoginResponse()
+                return new LoginResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -281,23 +265,23 @@ namespace CreditVillageBackend
         }
 
 
-        public async Task<UserForgetPasswordResponse> UserForgetPasswordAsync(UserForgetPasswordRequest userRequest)
+        public async Task<ForgetPasswordResponse> UserForgetPasswordAsync(ForgetPasswordRequest userRequest)
         {
             var existingUser = await _userManager.FindByEmailAsync(userRequest.Email);
 
             if (existingUser == null)
             {
-                return new UserForgetPasswordResponse()
+                return new ForgetPasswordResponse()
                 {
                     Check = false,
                     Status = "success",
-                    Message = "Reset Password link has been sent to your mail"
+                    Message = "Email does not Exist, Please Register"
                 };
             }
 
             string code = await _userManager.GeneratePasswordResetTokenAsync(existingUser);
 
-            return new UserForgetPasswordResponse()
+            return new ForgetPasswordResponse()
             {
                 Check = true,
                 Status = "success",
@@ -344,22 +328,53 @@ namespace CreditVillageBackend
         }
 
 
-        public async Task<AppUser> GetUserAsync(string UserId)
+        public async Task<GetUserResponse> GetUserAsync(string UserId)
         {
-            return await _userManager.Users
-                                    .Include(s => s.Nationality)
-                                    .Include(x => x.State)
-                                    .SingleOrDefaultAsync(s => s.Id == UserId);
+
+            var newUser = await _userManager.Users.SingleOrDefaultAsync(s => s.Id == UserId);
+
+            var fileDetails = await _uploadImage.GetFileFromDatabase(newUser.LogoFileId.ToString());
+
+            if (fileDetails != null)
+            {
+                var getResponse = new GetUserResponse()
+                {
+                    FirstName = newUser.FirstName,
+                    LastName = newUser.LastName,
+                    FullName = newUser.FirstName + " " + newUser.LastName,
+                    Gender = newUser.Gender,
+                    Email = newUser.Email,
+                    PhoneNumber = newUser.PhoneNumber,
+                    FileBase64 = fileDetails.File,
+                    FileFullName = fileDetails.FullName
+                };
+
+                return getResponse;
+            }
+            else
+            {
+                var getUserResponse = new GetUserResponse()
+                {
+                    FirstName = newUser.FirstName,
+                    LastName = newUser.LastName,
+                    FullName = newUser.FirstName + " " + newUser.LastName,
+                    Gender = newUser.Gender,
+                    Email = newUser.Email,
+                    PhoneNumber = newUser.PhoneNumber
+                };
+
+                return getUserResponse;
+            }
         }
 
 
-        public async Task<UserUpdateResponse> UpdateUserAsync(string GetUserId, UserUpdateRequest updateRequest)
+        public async Task<UpdateResponse> UpdateUserAsync(string GetUserId, UpdateRequest updateRequest)
         {
             var user = await _userManager.FindByIdAsync(GetUserId);
 
             if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
             {
-                return new UserUpdateResponse()
+                return new UpdateResponse()
                 {
                     Check = false,
                     Status = "success",
@@ -367,16 +382,14 @@ namespace CreditVillageBackend
                 };
             }
 
-            user.Full_Name = updateRequest.Full_Name;
-            user.Address = updateRequest.Address;
-            user.Bio = updateRequest.Bio;
-            user.NationalityId = updateRequest.NationalityId;
-            user.StateId = updateRequest.StateId;
-            user.PhoneNumber = updateRequest.Phone_Number;
+            user.FirstName = updateRequest.FirstName;
+            user.LastName = updateRequest.LastName;
+            user.PhoneNumber = updateRequest.PhoneNumber;
+            user.ModifiedOn = DateTime.Now;
 
             await _userManager.UpdateAsync(user);
 
-            return new UserUpdateResponse()
+            return new UpdateResponse()
             {
                 Check = true,
                 Status = "success",
@@ -384,8 +397,52 @@ namespace CreditVillageBackend
             };
         }
 
+        public async Task<EditResponse> EditUserDetailsAsync(string GetUserId, EditRequest editRequest)
+        {
+            var user = await _userManager.FindByIdAsync(GetUserId);
 
-        private async Task<UserLoginResponse> GenerateUserToken(AppUser user)
+            if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+            {
+                return new EditResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Username Doesn't Exist"
+                };
+            }
+
+            if (editRequest.LogoFile != null)
+            {
+                var imageId = await _uploadImage.UploadToDatabase(editRequest.LogoFile, user.LogoFileId);
+                user.LogoFileId = imageId;
+            }
+            
+            user.FirstName = editRequest.FirstName;
+            user.LastName = editRequest.LastName;
+            user.PhoneNumber = editRequest.PhoneNumber;
+            user.Gender = editRequest.Gender;
+            user.ModifiedOn = DateTime.Now;
+            
+            await _userManager.UpdateAsync(user);
+
+            return new EditResponse()
+            {
+                Check = true,
+                Status = "success",
+                Message = "Updated Successfully"
+            };
+        }
+
+        private async Task SendCodeToUser(string userEmail, string code)
+        {
+            string content = $"Confirm Your Account, Your OTP is { code }";
+
+            var subject = "CREDIT VILLAGE";
+
+           await _mailService.SendEmailAsync(userEmail, subject, content);
+        }
+
+        private async Task<LoginResponse> GenerateUserToken(AppUser user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_appSettings.Secret));
 
@@ -415,7 +472,7 @@ namespace CreditVillageBackend
                 expires: Expires,
                 signingCredentials: creds);
 
-            return new UserLoginResponse()
+            return new LoginResponse()
             {
                 Token = tokenHandler.WriteToken(token),
                 Expiration = Expires,
@@ -424,5 +481,6 @@ namespace CreditVillageBackend
                 Message = "successfully login"
             };
         }
+
     }
 }

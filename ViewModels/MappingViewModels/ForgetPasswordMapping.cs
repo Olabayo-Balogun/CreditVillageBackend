@@ -1,6 +1,6 @@
 namespace CreditVillageBackend
 {
-    public class UserUpdateMapping
+    public class ForgetPasswordMapping
     {
         public string Status { get; set; }
 

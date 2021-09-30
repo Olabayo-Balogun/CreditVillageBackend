@@ -1,6 +1,6 @@
 namespace CreditVillageBackend
 {
-    public class UserVerifyMapping
+    public class ResendCodeMapping
     {
         public string Status { get; set; }
 

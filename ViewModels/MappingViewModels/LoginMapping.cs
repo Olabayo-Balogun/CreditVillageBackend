@@ -2,12 +2,12 @@ using System;
 
 namespace CreditVillageBackend
 {
-    public class UserLoginMapping : ResponseMapping<UserLoginConfirm>
+    public class LoginMapping : ResponseMapping<LoginConfirm>
     {
 
     }
 
-    public class UserLoginConfirm
+    public class LoginConfirm
     {
         public string Token { get; set; }
 

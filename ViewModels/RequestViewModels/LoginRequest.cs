@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CreditVillageBackend
 {
-    public class UserLoginRequest
+    public class LoginRequest
     {
         [Required]
         [Display(Name = "Email")]
