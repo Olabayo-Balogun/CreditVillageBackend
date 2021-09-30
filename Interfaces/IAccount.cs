@@ -28,5 +28,6 @@ namespace CreditVillageBackend
 
         Task<EditResponse> EditUserDetailsAsync(string GetUserId, EditRequest editRequest);
 
+        Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest userRequest);
     }
 }

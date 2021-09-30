@@ -278,6 +278,15 @@ namespace CreditVillageBackend
                     Message = "Email does not Exist, Please Register"
                 };
             }
+            if (!(await _userManager.IsEmailConfirmedAsync(existingUser)))
+            {
+                return new ForgetPasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Your Email Address has not been confirm. Kindly Check Your Email Address"
+                };
+            }
 
             string code = await _userManager.GeneratePasswordResetTokenAsync(existingUser);
 
@@ -290,6 +299,49 @@ namespace CreditVillageBackend
                 Email = existingUser.Email,
                 Code = code
             };
+        }
+
+        public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest userRequest)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(userRequest.Email);
+
+            if (existingUser == null)
+            {
+                return new ResetPasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Email does not Exist, Please Register"
+                };
+            }
+            if (!(await _userManager.IsEmailConfirmedAsync(existingUser)))
+            {
+                return new ResetPasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Your Email Address has not been confirm. Kindly Check Your Email Address"
+                };
+            }
+
+            var result = await _userManager.ResetPasswordAsync(existingUser, userRequest.Code, userRequest.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                return new ResetPasswordResponse()
+                {
+                    Check = false,
+                    Status = "success",
+                    Message = "Invalid Token"
+                };
+            }
+
+            return new ResetPasswordResponse()
+            {
+                Check = true,
+                Status = "success",
+                Message = "Password Reset Successfully"
+            }; 
         }
 
 
